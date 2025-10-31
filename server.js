@@ -1,26 +1,44 @@
-import express from "express";
-import dotenv from "dotenv";
-import connectDB from "./config/db.js";
+// server.js
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const connectDB = require('./config/db');
 
-dotenv.config();
-connectDB();
+const bookingsRoutes = require('./routes/bookings');
 
 const app = express();
+const PORT = process.env.PORT || 5000;
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGODB_URI || '';
+
+if (!MONGODB_URI) {
+  console.error('Missing MONGODB_URI in environment. Add it to .env');
+  process.exit(1);
+}
+
+// Connect DB
+connectDB(MONGODB_URI);
+
+// Middlewares
+app.use(cors());
 app.use(express.json());
 
-// ✅ Base route
-app.get("/", (req, res) => {
-  res.send("🚀 Server is running and connected to MongoDB!");
+// Routes
+app.use('/api/bookings', bookingsRoutes);
+
+// Root
+app.get('/', (req, res) => {
+  res.status(200).json({ success: true, message: 'Synergia Bookings API is running' });
 });
 
-// ✅ Example endpoint
-app.get("/api/students", (req, res) => {
-  res.json([
-    { name: "Sayeesh", branch: "CSE" },
-    { name: "Rohan", branch: "ISE" },
-  ]);
+// 404 fallback
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ✅ Only ONE declaration of PORT
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`✅ Server running on port ${PORT}`));
+// Error handler (optional enhanced)
+app.use((err, req, res, next) => {
+  console.error('Unhandled error:', err);
+  res.status(500).json({ success: false, message: 'Server error' });
+});
+
+app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
